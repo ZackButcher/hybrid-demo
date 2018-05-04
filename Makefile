@@ -3,20 +3,22 @@ TAG := release-0.8-20180503-19-07
 
 SHELL := /bin/zsh
 
-CLUSTER_A :="gke_google.com:zbutcher-test_us-west1-c_a"
+CLUSTER_A :="gke_google.com:zbutcher-test_us-west1-b_c"
 CLUSTER_A_DIR :=./cluster-a
 
 CLUSTER_B :="gke_google.com:zbutcher-test_us-west1-c_b"
 CLUSTER_B_DIR :=./cluster-b
 
-ISTIO_FILE_NAME := istio-auth.yaml
+ISTIO_FILE_NAME := istio.yaml
 APP_FILE_NAME := app.yaml
+CROSS_CLUSTER_CONFIG_FILE_NAME := cross-cluster.yaml
+CORE_DNS_FILE_NAME := coredns.yaml
 
 ##############
 
 cluster-roles:
-  kubectl create clusterrolebinding cluster-admin-binding --clusterrole=cluster-admin --user=$(gcloud config get-value core/account) --context=${CLUSTER_A}
-  kubectl create clusterrolebinding cluster-admin-binding --clusterrole=cluster-admin --user=$(gcloud config get-value core/account) --context=${CLUSTER_B}
+	kubectl create clusterrolebinding cluster-admin-binding --clusterrole=cluster-admin --user=$(gcloud config get-value core/account) --context=${CLUSTER_A}
+	kubectl create clusterrolebinding cluster-admin-binding --clusterrole=cluster-admin --user=$(gcloud config get-value core/account) --context=${CLUSTER_B}
 
 ##############
 
@@ -29,6 +31,9 @@ deploy-a:
 		sed -e "s,${HUB}/proxy:,${HUB}/proxyv2:,g") --context=${CLUSTER_A}
 deploy-a.istio:
 	kubectl apply -f ${CLUSTER_A_DIR}/${ISTIO_FILE_NAME} --context=${CLUSTER_A}
+deploy-a.istio.cross-cluster:
+	kubectl apply -f ${CLUSTER_A_DIR}/${CROSS_CLUSTER_CONFIG_FILE_NAME} --context=${CLUSTER_A}
+	kubectl apply -f ${CLUSTER_A_DIR}/${CORE_DNS_FILE_NAME} --context=${CLUSTER_A}
 deploy-a.addons:
 	kubectl apply -f ${CLUSTER_A_DIR}/addons --context=${CLUSTER_A}
 
@@ -36,6 +41,9 @@ delete-a:
 	kubectl delete -f ${CLUSTER_A_DIR}/${APP_FILE_NAME} --context=${CLUSTER_A} || true
 delete-a.istio:
 	kubectl delete -f ${CLUSTER_A_DIR}/${ISTIO_FILE_NAME} --context=${CLUSTER_A} || true
+delete-a.istio.cross-cluster:
+	kubectl delete -f ${CLUSTER_a_DIR}/${CROSS_CLUSTER_CONFIG_FILE_NAME} --context=${CLUSTER_A} || true
+	kubectl delete -f ${CLUSTER_a_DIR}/${CORE_DNS_FILE_NAME} --context=${CLUSTER_A} || true
 delete-a.addons:
 	kubectl delete -f ${CLUSTER_A_DIR}/addons --context=${CLUSTER_A} || true
 
@@ -50,15 +58,19 @@ deploy-b:
 		sed -e "s,${HUB}/proxy:,${HUB}/proxyv2:,g") --context=${CLUSTER_B}
 deploy-b.istio:
 	kubectl apply -f ${CLUSTER_B_DIR}/${ISTIO_FILE_NAME} --context=${CLUSTER_B}
-	# kubectl apply -f ${CLUSTER_B_DIR}/${ISTIO_FILE_NAME} --context=${CLUSTER_B}
+deploy-b.istio.cross-cluster:
+	kubectl apply -f ${CLUSTER_B_DIR}/${CROSS_CLUSTER_CONFIG_FILE_NAME} --context=${CLUSTER_B}
+	kubectl apply -f ${CLUSTER_B_DIR}/${CORE_DNS_FILE_NAME} --context=${CLUSTER_B}
 deploy-b.addons:
     kubectl apply -f ${CLUSTER_B_DIR}/addons --context=${CLUSTER_A}
 	
 delete-b:
 	kubectl delete -f ${CLUSTER_B_DIR}/${APP_FILE_NAME} --context=${CLUSTER_B} || true
 delete-b.istio:
-	kubectl delete -f ${CLUSTER_B_DIR}/${ISTIO_FILE_NAME}-default-namespace --context=${CLUSTER_B}
-	# kubectl delete -f ${CLUSTER_B_DIR}/${ISTIO_FILE_NAME} --context=${CLUSTER_B} || true
+	kubectl delete -f ${CLUSTER_B_DIR}/${ISTIO_FILE_NAME} --context=${CLUSTER_B} || true
+delete-b.istio.cross-cluster:
+	kubectl delete -f ${CLUSTER_B_DIR}/${CROSS_CLUSTER_CONFIG_FILE_NAME} --context=${CLUSTER_B} || true
+	kubectl delete -f ${CLUSTER_B_DIR}/${CORE_DNS_FILE_NAME} --context=${CLUSTER_B} || true
 delete-b.addons:
 	kubectl delete -f ${CLUSTER_B_DIR}/addons --context=${CLUSTER_A} || true
 
@@ -66,9 +78,13 @@ delete-b.addons:
 
 deploy: deploy-a deploy-b
 deploy.istio: deploy-a.istio deploy-b.istio
+deploy.istio.cross-cluster: deploy.istio deploy-a.istio.cross-cluster deploy-b.istio.cross-cluster
 deploy.addons: deploy-a.addons deploy-b.addons
+
 delete: delete-a delete-b
 delete.istio: delete-a.istio delete-b.istio
+delete.istio.cross-cluster: delete-a.istio.cross-cluster delete-b.istio.cross-cluster
 delete.addons: delete-a.addons delete-b.addons
 
-deploy-all: deploy.istio deploy.addons deploy
+deploy-all: deploy.istio deploy deploy.istio.cross-cluster
+delete-all: delete.istio.cross-cluster delete delete.istio
