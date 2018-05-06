@@ -32,7 +32,7 @@ spec:
     spec:
       containers:
       - name: test-server
-        image: gcr.io/google.com/zbutcher-test/test-server
+        image: zackbutcher/test-server
         imagePullPolicy: Always
         ports:
         - containerPort: 80
