@@ -6,7 +6,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: coredns
-  namespace: kube-system
+  namespace: istio-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
@@ -41,13 +41,13 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: coredns
-  namespace: kube-system
+  namespace: istio-system
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: coredns
-  namespace: kube-system
+  namespace: istio-system
 data:
   Corefile: |
     .:53 {
@@ -59,8 +59,8 @@ data:
           fallthrough in-addr.arpa ip6.arpa
         }
         template IN A remote {
-          match (.*?)[.]remote$
-          answer "{{ .Name }} 3600 IN A 1.1.1.1"
+          match (.*?)[.]remote[.]$
+          answer "{{ .Name }} 3600 IN A 10.1.1.1"
         }
         prometheus :9153
         proxy . /etc/resolv.conf
@@ -72,9 +72,9 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: coredns
-  namespace: kube-system
+  namespace: istio-system
   labels:
-    k8s-app: kube-dns
+    app: core-dns
     kubernetes.io/name: "CoreDNS"
 spec:
   replicas: 2
@@ -84,11 +84,11 @@ spec:
       maxUnavailable: 1
   selector:
     matchLabels:
-      k8s-app: kube-dns
+      app: core-dns
   template:
     metadata:
       labels:
-        k8s-app: kube-dns
+        app: core-dns
     spec:
       serviceAccountName: coredns
       tolerations:
@@ -133,18 +133,17 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: kube-dns
-  namespace: kube-system
+  name: core-dns
+  namespace: istio-system
   annotations:
     prometheus.io/scrape: "true"
   labels:
-    k8s-app: kube-dns
+    app: core-dns
     kubernetes.io/cluster-service: "true"
     kubernetes.io/name: "CoreDNS"
 spec:
   selector:
-    k8s-app: kube-dns
-  clusterIP: 10.59.240.10 # TODO: This is brittle, how do we not specify it?
+    app: core-dns
   ports:
   - name: dns
     port: 53

@@ -32,7 +32,7 @@ spec:
     spec:
       containers:
       - name: test-server
-        image: zackbutcher/test-server
+        image: zackbutcher/test-server-debug
         imagePullPolicy: Always
         ports:
         - containerPort: 80

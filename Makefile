@@ -1,12 +1,12 @@
-HUB := gcr.io/istio-release
-TAG := release-0.8-20180503-19-07
-
 SHELL := /bin/zsh
 
-CLUSTER_A :="gke_google.com:zbutcher-test_us-west1-b_c"
+HUB := gcr.io/istio-release
+TAG := release-0.8-20180504-18-37
+
+CLUSTER_A :="gke_zack-butcher_us-west1-a_a"
 CLUSTER_A_DIR :=./cluster-a
 
-CLUSTER_B :="gke_google.com:zbutcher-test_us-west1-c_b"
+CLUSTER_B :="gke_zack-butcher_us-west1-b_b"
 CLUSTER_B_DIR :=./cluster-b
 
 ISTIO_FILE_NAME := istio.yaml
@@ -17,8 +17,8 @@ CORE_DNS_FILE_NAME := coredns.yaml
 ##############
 
 cluster-roles:
-	kubectl create clusterrolebinding cluster-admin-binding --clusterrole=cluster-admin --user=$(gcloud config get-value core/account) --context=${CLUSTER_A}
-	kubectl create clusterrolebinding cluster-admin-binding --clusterrole=cluster-admin --user=$(gcloud config get-value core/account) --context=${CLUSTER_B}
+	kubectl create clusterrolebinding cluster-admin-binding --clusterrole=cluster-admin --user=$(shell gcloud config get-value core/account) --context=${CLUSTER_A}
+	kubectl create clusterrolebinding cluster-admin-binding --clusterrole=cluster-admin --user=$(shell gcloud config get-value core/account) --context=${CLUSTER_B}
 
 ##############
 
@@ -31,9 +31,16 @@ deploy-a:
 		sed -e "s,${HUB}/proxy:,${HUB}/proxyv2:,g") --context=${CLUSTER_A}
 deploy-a.istio:
 	kubectl apply -f ${CLUSTER_A_DIR}/${ISTIO_FILE_NAME} --context=${CLUSTER_A}
-deploy-a.istio.cross-cluster:
-	kubectl apply -f ${CLUSTER_A_DIR}/${CROSS_CLUSTER_CONFIG_FILE_NAME} --context=${CLUSTER_A}
+deploy-a.istio.cross-cluster.dns:
 	kubectl apply -f ${CLUSTER_A_DIR}/${CORE_DNS_FILE_NAME} --context=${CLUSTER_A}
+deploy-a.istio.cross-cluster:
+	$(eval CORE_DNS_IP := $(shell kubectl get svc core-dns -n istio-system -o jsonpath='{.spec.clusterIP}' --context=${CLUSTER_A}))
+	$(eval INGRESS_B_IP := $(shell kubectl get svc istio-ingressgateway -n istio-system -o jsonpath='{.status.loadBalancer.ingress[*].ip}' --context=${CLUSTER_B}))
+	sed -e "s/INGRESS_IP_ADDRESS/${INGRESS_B_IP}/g" \
+		-e "s/CORE_DNS_IP/${CORE_DNS_IP}/g" \
+		${CLUSTER_A_DIR}/${CROSS_CLUSTER_CONFIG_FILE_NAME} | \
+	kubectl  --context=${CLUSTER_A} apply -f -
+
 deploy-a.addons:
 	kubectl apply -f ${CLUSTER_A_DIR}/addons --context=${CLUSTER_A}
 
@@ -58,9 +65,16 @@ deploy-b:
 		sed -e "s,${HUB}/proxy:,${HUB}/proxyv2:,g") --context=${CLUSTER_B}
 deploy-b.istio:
 	kubectl apply -f ${CLUSTER_B_DIR}/${ISTIO_FILE_NAME} --context=${CLUSTER_B}
-deploy-b.istio.cross-cluster:
-	kubectl apply -f ${CLUSTER_B_DIR}/${CROSS_CLUSTER_CONFIG_FILE_NAME} --context=${CLUSTER_B}
+deploy-b.istio.cross-cluster.dns:
 	kubectl apply -f ${CLUSTER_B_DIR}/${CORE_DNS_FILE_NAME} --context=${CLUSTER_B}
+deploy-b.istio.cross-cluster:
+	$(eval CORE_DNS_IP := $(shell kubectl get svc core-dns -n istio-system -o jsonpath='{.spec.clusterIP}' --context=${CLUSTER_B}))
+	$(eval INGRESS_A_IP := $(shell kubectl get svc istio-ingressgateway -n istio-system -o jsonpath='{.status.loadBalancer.ingress[*].ip}' --context=${CLUSTER_A}))
+	sed -e "s/INGRESS_IP_ADDRESS/${INGRESS_A_IP}/g" \
+		-e "s/CORE_DNS_IP/${CORE_DNS_IP}/g" \
+		${CLUSTER_B_DIR}/${CROSS_CLUSTER_CONFIG_FILE_NAME} | \
+	kubectl  --context=${CLUSTER_B} apply -f -
+
 deploy-b.addons:
     kubectl apply -f ${CLUSTER_B_DIR}/addons --context=${CLUSTER_A}
 	
@@ -78,7 +92,7 @@ delete-b.addons:
 
 deploy: deploy-a deploy-b
 deploy.istio: deploy-a.istio deploy-b.istio
-deploy.istio.cross-cluster: deploy.istio deploy-a.istio.cross-cluster deploy-b.istio.cross-cluster
+deploy.istio.cross-cluster: deploy-a.istio.cross-cluster deploy-b.istio.cross-cluster
 deploy.addons: deploy-a.addons deploy-b.addons
 
 delete: delete-a delete-b

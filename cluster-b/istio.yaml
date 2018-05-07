@@ -629,8 +629,8 @@ metadata:
 data:
   mesh: |-
     # Mutual TLS between proxies
-    authPolicy: MUTUAL_TLS
-    mtlsExcludedServices: ["kubernetes.default.svc.cluster.local"]
+    authPolicy: NONE
+    # mtlsExcludedServices: ["kubernetes.default.svc.cluster.local"]
     #
     # Edit this list to avoid using mTLS to connect to these services.
     # Typically, these are control services (e.g kubernetes API server) that don't have istio sidecar
