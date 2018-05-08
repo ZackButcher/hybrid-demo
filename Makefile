@@ -49,8 +49,9 @@ delete-a:
 delete-a.istio:
 	kubectl delete -f ${CLUSTER_A_DIR}/${ISTIO_FILE_NAME} --context=${CLUSTER_A} || true
 delete-a.istio.cross-cluster:
-	kubectl delete -f ${CLUSTER_a_DIR}/${CROSS_CLUSTER_CONFIG_FILE_NAME} --context=${CLUSTER_A} || true
-	kubectl delete -f ${CLUSTER_a_DIR}/${CORE_DNS_FILE_NAME} --context=${CLUSTER_A} || true
+	kubectl delete -f ${CLUSTER_A_DIR}/${CROSS_CLUSTER_CONFIG_FILE_NAME} --context=${CLUSTER_A} || true
+delete-a.istio.cross-cluster.dns:
+	kubectl delete -f ${CLUSTER_A_DIR}/${CORE_DNS_FILE_NAME} --context=${CLUSTER_A} || true
 delete-a.addons:
 	kubectl delete -f ${CLUSTER_A_DIR}/addons --context=${CLUSTER_A} || true
 
@@ -84,6 +85,7 @@ delete-b.istio:
 	kubectl delete -f ${CLUSTER_B_DIR}/${ISTIO_FILE_NAME} --context=${CLUSTER_B} || true
 delete-b.istio.cross-cluster:
 	kubectl delete -f ${CLUSTER_B_DIR}/${CROSS_CLUSTER_CONFIG_FILE_NAME} --context=${CLUSTER_B} || true
+delete-b.istio.cross-cluster.dns:
 	kubectl delete -f ${CLUSTER_B_DIR}/${CORE_DNS_FILE_NAME} --context=${CLUSTER_B} || true
 delete-b.addons:
 	kubectl delete -f ${CLUSTER_B_DIR}/addons --context=${CLUSTER_A} || true
@@ -92,13 +94,15 @@ delete-b.addons:
 
 deploy: deploy-a deploy-b
 deploy.istio: deploy-a.istio deploy-b.istio
+deploy.istio.cross-cluster.dns: deploy-a.istio.cross-cluster.dns deploy-b.istio.cross-cluster.dns
 deploy.istio.cross-cluster: deploy-a.istio.cross-cluster deploy-b.istio.cross-cluster
 deploy.addons: deploy-a.addons deploy-b.addons
 
 delete: delete-a delete-b
 delete.istio: delete-a.istio delete-b.istio
 delete.istio.cross-cluster: delete-a.istio.cross-cluster delete-b.istio.cross-cluster
+delete.istio.cross-cluster.dns: delete-a.istio.cross-cluster.dns delete-b.istio.cross-cluster.dns
 delete.addons: delete-a.addons delete-b.addons
 
-deploy-all: deploy.istio deploy deploy.istio.cross-cluster
-delete-all: delete.istio.cross-cluster delete delete.istio
+deploy-all: deploy.istio deploy.istio.cross-cluster.dns deploy deploy.istio.cross-cluster
+delete-all: delete.istio.cross-cluster delete delete.istio.cross-cluster.dns delete.istio

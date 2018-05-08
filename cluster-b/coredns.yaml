@@ -60,7 +60,7 @@ data:
         }
         template IN A remote {
           match (.*?)[.]remote[.]$
-          answer "{{ .Name }} 3600 IN A 10.1.1.1"
+          answer "{{ .Name }} 3600 IN A 10.0.0.0"
         }
         prometheus :9153
         proxy . /etc/resolv.conf
