@@ -1,0 +1,17 @@
+# Expose our test-server service over the Gateway as `test-server.svc.b.remote`
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: a-remote-test-server
+spec:
+  gateways:
+  - ingress-gateway
+  # allow callers inside of this cluster to address us as "test-server.svc.a.remote" too
+  - mesh
+  hosts:
+  - test-server.svc.a.remote
+  http:
+  - route:
+    - destination:
+        # note we assume we're in the same namespace as the test-server and don't use a FQDN
+        host: test-server
