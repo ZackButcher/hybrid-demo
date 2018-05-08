@@ -35,7 +35,7 @@ metadata:
   name: a-ingress
 spec:
   hosts:
-  - "*.svc.a.remote"
+  - ingress.a.remote
   ports:
   - number: 80
     name: http
@@ -71,7 +71,7 @@ spec:
   - route:
     - destination:
         # Send this traffic to the ServiceEntry a-ingress
-        host: "*.svc.a.remote"
+        host: ingress.a.remote
         port:
           number: 80
       weight: 100

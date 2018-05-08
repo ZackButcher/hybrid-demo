@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: productpage
+  labels:
+    app: productpage
+spec:
+  ports:
+  - port: 9080
+    name: http
+  selector:
+    app: productpage
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: productpage-v1
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: productpage
+        version: v1
+    spec:
+      containers:
+      - name: productpage
+        image: zackbutcher/examples-bookinfo-productpage-v1:1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9080
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: bookinfo
+spec:
+  gateways:
+  - ingress-gateway
+  hosts:
+  - "*"
+  http:
+  - match:
+    - uri:
+        prefix: /details
+    rewrite:
+      # do the header re-write so we can ingress via host
+      authority: details.svc.b.remote
+    route:
+    - destination:
+        host: ingress.b.remote
+        port:
+          number: 80
+      weight: 100
+  - match:
+    - uri:
+        prefix: /reviews
+    rewrite:
+      # do the header re-write so we can ingress via host
+      authority: reviews.svc.b.remote
+    route:
+    - destination:
+        host: ingress.b.remote
+        port:
+          number: 80
+      weight: 100
+  - match:
+    - uri:
+        exact: /productpage
+    - uri:
+        exact: /login
+    - uri:
+        exact: /logout
+    - uri:
+        prefix: /api/v1/products
+    - uri:
+        prefix: /favicon.ico
+    route:
+    - destination:
+        host: productpage
+        port:
+          number: 9080
+      weight: 100

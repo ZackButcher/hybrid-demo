@@ -11,6 +11,7 @@ spec:
   servers:
   - hosts:
     - "*.svc.a.remote"
+    - 35.226.114.103
     port:
       number: 80
       protocol: HTTP
@@ -35,7 +36,7 @@ metadata:
   name: b-ingress
 spec:
   hosts:
-  - "*.svc.b.remote"
+  - ingress.b.remote
   ports:
   - number: 80
     name: http
@@ -71,7 +72,7 @@ spec:
   - route:
     - destination:
         # Send this traffic to the ServiceEntry b-ingress
-        host: "*.svc.b.remote"
+        host: ingress.b.remote
         port:
           number: 80
       weight: 100

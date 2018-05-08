@@ -1,22 +1,3 @@
-# # This ingress exists to tie a static IP address to the cluster's ingress without having to interact with GCP APIs
-# # by using the platform's built in support for annotations
-# apiVersion: extensions/v1beta1
-# kind: Ingress
-# metadata:
-#   name: istio-dummy-ingress
-#   namespace: istio-system
-#   annotations:
-#     kubernetes.io/ingress.global-static-ip-name: "cluster-b-ingress"
-# spec:
-#   rules:
-#   - host: istio.io
-#     http:
-#       paths:
-#       - path: /
-#         backend:
-#           serviceName: blackhole
-#           servicePort: 80
----
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -75,3 +56,17 @@ spec:
   selector:
     app: test-server
 ---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: test-server
+spec:
+  gateways:
+  - ingress-gateway
+  - mesh
+  hosts:
+  - test-server.svc.b.remote
+  http:
+  - route:
+    - destination:
+        host: test-server
